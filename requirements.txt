@@ -1,0 +1,13 @@
+streamlit
+pandas
+vaderSentiment
+deep-translator
+requests
+beautifulsoup4
+plotly
+matplotlib
+scikit-learn
+wordcloud
+gdown
+tensorflow
+numpy
