@@ -5,6 +5,8 @@ from deep_translator import GoogleTranslator
 import requests
 from bs4 import BeautifulSoup
 import plotly.graph_objects as go
+import plotly.express as px
+import altair as alt
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
@@ -174,17 +176,30 @@ if symbol_sentiment:
         df_pandas_news = df_pandas_news.sort_values(by='news_date')
         st.line_chart(df_pandas_news.set_index('news_date')['article_score'])
 
-        # Customized Sentiment Distribution
-        st.write("### Sentiment Distribution")
-        sentiment_counts = df_pandas_news['article_sentiment'].value_counts()
-        colors = {'NEGATIVE': 'red', 'NEUTRAL': 'yellow', 'POSITIVE': 'green'}
+        # Option 1: Sentiment Distribution with Plotly
+        st.write("### Sentiment Distribution (Using Plotly)")
+        sentiment_counts = df_pandas_news['article_sentiment'].value_counts().reset_index()
+        sentiment_counts.columns = ['Sentiment', 'Count']
+        color_discrete_map = {'NEGATIVE': 'red', 'NEUTRAL': 'yellow', 'POSITIVE': 'green'}
 
-        plt.figure(figsize=(8, 5))
-        plt.bar(sentiment_counts.index, sentiment_counts.values, color=[colors[sent] for sent in sentiment_counts.index])
-        plt.xlabel('Sentiment')
-        plt.ylabel('Count')
-        plt.title('Sentiment Distribution')
-        st.pyplot(plt)
+        fig_plotly = px.bar(sentiment_counts, x='Sentiment', y='Count', color='Sentiment',
+                            color_discrete_map=color_discrete_map, title="Sentiment Distribution")
+        st.plotly_chart(fig_plotly)
+
+        # Option 2: Sentiment Distribution with Altair
+        st.write("### Sentiment Distribution (Using Altair)")
+        color_scale = alt.Scale(domain=['NEGATIVE', 'NEUTRAL', 'POSITIVE'],
+                                range=['red', 'yellow', 'green'])
+
+        chart_altair = alt.Chart(sentiment_counts).mark_bar().encode(
+            x=alt.X('Sentiment', title='Sentiment'),
+            y=alt.Y('Count', title='Count'),
+            color=alt.Color('Sentiment', scale=color_scale)
+        ).properties(
+            title="Sentiment Distribution"
+        )
+
+        st.altair_chart(chart_altair, use_container_width=True)
 
         df_pandas_news['cleaned_title_en'] = df_pandas_news['title_en'].str.replace(r'\W', ' ', regex=True)
         df_pandas_news['cleaned_introduction_en'] = df_pandas_news['introduction_en'].str.replace(r'\W', ' ', regex=True)
