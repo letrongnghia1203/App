@@ -174,8 +174,17 @@ if symbol_sentiment:
         df_pandas_news = df_pandas_news.sort_values(by='news_date')
         st.line_chart(df_pandas_news.set_index('news_date')['article_score'])
 
+        # Customized Sentiment Distribution
         st.write("### Sentiment Distribution")
-        st.bar_chart(df_pandas_news['article_sentiment'].value_counts())
+        sentiment_counts = df_pandas_news['article_sentiment'].value_counts()
+        colors = {'NEGATIVE': 'red', 'NEUTRAL': 'yellow', 'POSITIVE': 'green'}
+
+        plt.figure(figsize=(8, 5))
+        plt.bar(sentiment_counts.index, sentiment_counts.values, color=[colors[sent] for sent in sentiment_counts.index])
+        plt.xlabel('Sentiment')
+        plt.ylabel('Count')
+        plt.title('Sentiment Distribution')
+        st.pyplot(plt)
 
         df_pandas_news['cleaned_title_en'] = df_pandas_news['title_en'].str.replace(r'\W', ' ', regex=True)
         df_pandas_news['cleaned_introduction_en'] = df_pandas_news['introduction_en'].str.replace(r'\W', ' ', regex=True)
