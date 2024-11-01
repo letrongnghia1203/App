@@ -5,6 +5,7 @@ from deep_translator import GoogleTranslator
 import requests
 from bs4 import BeautifulSoup
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 import plotly.express as px
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
