@@ -186,20 +186,7 @@ if symbol_sentiment:
                             color_discrete_map=color_discrete_map, title="Sentiment Distribution")
         st.plotly_chart(fig_plotly)
 
-        # Option 2: Sentiment Distribution with Altair
-        st.write("### Sentiment Distribution (Using Altair)")
-        color_scale = alt.Scale(domain=['NEGATIVE', 'NEUTRAL', 'POSITIVE'],
-                                range=['red', 'yellow', 'green'])
-
-        chart_altair = alt.Chart(sentiment_counts).mark_bar().encode(
-            x=alt.X('Sentiment', title='Sentiment'),
-            y=alt.Y('Count', title='Count'),
-            color=alt.Color('Sentiment', scale=color_scale)
-        ).properties(
-            title="Sentiment Distribution"
-        )
-
-        st.altair_chart(chart_altair, use_container_width=True)
+        
 
         df_pandas_news['cleaned_title_en'] = df_pandas_news['title_en'].str.replace(r'\W', ' ', regex=True)
         df_pandas_news['cleaned_introduction_en'] = df_pandas_news['introduction_en'].str.replace(r'\W', ' ', regex=True)
