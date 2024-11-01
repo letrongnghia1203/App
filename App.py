@@ -6,8 +6,6 @@ import requests
 from bs4 import BeautifulSoup
 import plotly.graph_objects as go
 import plotly.express as px
-import altair as alt
-import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from wordcloud import WordCloud
@@ -176,18 +174,23 @@ if symbol_sentiment:
         df_pandas_news = df_pandas_news.sort_values(by='news_date')
         st.line_chart(df_pandas_news.set_index('news_date')['article_score'])
 
-        # Option 1: Sentiment Distribution with Plotly
-        st.write("### Sentiment Distribution (Using Plotly)")
+                # Sentiment Distribution with Plotly
+        st.write("### Sentiment Distribution")
         sentiment_counts = df_pandas_news['article_sentiment'].value_counts().reset_index()
         sentiment_counts.columns = ['Sentiment', 'Count']
         color_discrete_map = {'NEGATIVE': 'red', 'NEUTRAL': 'yellow', 'POSITIVE': 'green'}
 
-        fig_plotly = px.bar(sentiment_counts, x='Sentiment', y='Count', color='Sentiment',
-                            color_discrete_map=color_discrete_map, title="Sentiment Distribution")
+        fig_plotly = px.bar(
+            sentiment_counts, 
+            x='Sentiment', 
+            y='Count', 
+            color='Sentiment',
+            color_discrete_map=color_discrete_map, 
+            title="Sentiment Distribution"
+        )
         st.plotly_chart(fig_plotly)
 
-        
-
+        # Word Cloud for Most Common Topics in Positive Sentiment Articles
         df_pandas_news['cleaned_title_en'] = df_pandas_news['title_en'].str.replace(r'\W', ' ', regex=True)
         df_pandas_news['cleaned_introduction_en'] = df_pandas_news['introduction_en'].str.replace(r'\W', ' ', regex=True)
         
@@ -212,3 +215,4 @@ if symbol_sentiment:
         st.pyplot(plt)
     else:
         st.write("No news data available for this stock symbol.")
+
