@@ -5,7 +5,6 @@ from deep_translator import GoogleTranslator
 import requests
 from bs4 import BeautifulSoup
 import plotly.graph_objects as go
-import matplotlib.pyplot as plt
 import plotly.express as px
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
@@ -14,6 +13,7 @@ import gdown
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Initialize sentiment analyzer
 analyzer = SentimentIntensityAnalyzer()
@@ -86,7 +86,7 @@ if symbol_price:
         future_predictions = []
 
         for _ in range(252):  # Giả sử có 252 ngày giao dịch trong một năm
-            future_seq = np.expand_dims(future_prices, axis=0)
+            future_seq = np.expand_dims(future_prices, axis=0)  # Shape: (1, seq_length, 1)
             next_price = st.session_state.lstm_model.predict(future_seq)
             future_predictions.append(next_price[0, 0])  # Lưu giá trị dự đoán
             future_prices = np.append(future_prices[1:], next_price[0, 0])  # Cập nhật chuỗi đầu vào cho lần dự đoán kế tiếp
