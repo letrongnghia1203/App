@@ -86,19 +86,34 @@ if symbol_price:
         future_predictions = []
 
         for _ in range(252):  # Giả sử có 252 ngày giao dịch trong một năm
-            future_seq = np.expand_dims(future_prices, axis=0)  # Shape: (1, seq_length, 1)
-            next_price = st.session_state.lstm_model.predict(future_seq)
-            future_predictions.append(next_price[0, 0])  # Lưu giá trị dự đoán
-            future_prices = np.append(future_prices[1:], next_price[0, 0])  # Cập nhật chuỗi đầu vào cho lần dự đoán kế tiếp
-        
-        # Chuyển đổi lại giá trị dự đoán về thang đo gốc
+            # Đảm bảo rằng `future_prices` có kích thước đúng (1, seq_length, 1)
+            future_seq = np.expand_dims(future_prices, axis=0)  # (seq_length,) -> (1, seq_length)
+            future_seq = np.expand_dims(future_seq, axis=2)     # Đảm bảo kích thước (1, seq_length, 1)
+            
+            # Kiểm tra kích thước của future_seq
+            st.write(f"Kích thước của future_seq: {future_seq.shape}")
+            
+            try:
+                # Predict the next price
+                next_price = st.session_state.lstm_model.predict(future_seq)
+            except ValueError as e:
+                st.write(f"Lỗi khi dự đoán với future_seq: {e}")
+                break  # Dừng vòng lặp nếu có lỗi
+
+            # Lưu giá trị dự đoán
+            future_predictions.append(next_price[0, 0])  
+            
+            # Cập nhật future_prices để tạo chuỗi mới cho lần dự đoán kế tiếp
+            future_prices = np.append(future_prices[1:], next_price[0, 0])
+
+        # Sau khi dự đoán xong, chuyển đổi lại dự đoán về thang đo gốc
         future_predictions = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1))
 
-        # Tạo danh sách ngày cho 1 năm tiếp theo
+        # Tạo danh sách ngày cho dự đoán 1 năm tiếp theo
         last_date = df_filtered['Ngày'].max()
-        future_dates = pd.date_range(start=last_date, periods=252, freq='B')  # B for business day
+        future_dates = pd.date_range(start=last_date, periods=252, freq='B')  # Chỉ tính các ngày làm việc
 
-        # Thêm vào biểu đồ
+        # Vẽ biểu đồ dự đoán
         fig.add_trace(go.Scatter(x=future_dates, y=future_predictions.flatten(), mode='lines', name='Next Year Predictions'))
 
         fig.update_layout(title=f'Giá Đóng Cửa Cổ Phiếu {symbol_price.upper()} với Dự Đoán LSTM cho 1 Năm Tiếp Theo',
