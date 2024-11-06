@@ -88,7 +88,7 @@ if symbol_price:
         for _ in range(252):  # Giả sử có 252 ngày giao dịch trong một năm
             # Đảm bảo rằng `future_prices` có kích thước đúng (1, seq_length, 1)
             future_seq = np.expand_dims(future_prices, axis=0)  # (seq_length,) -> (1, seq_length)
-            future_seq = np.expand_dims(future_seq, axis=2)     # Đảm bảo kích thước (1, seq_length, 1)
+            future_seq = future_seq.reshape(1, seq_length, 1)   # Đảm bảo kích thước (1, seq_length, 1)
             
             # Kiểm tra kích thước của future_seq
             st.write(f"Kích thước của future_seq: {future_seq.shape}")
