@@ -90,8 +90,7 @@ if symbol_price:
             future_seq = np.expand_dims(future_prices, axis=0)  # (seq_length,) -> (1, seq_length)
             future_seq = future_seq.reshape(1, seq_length, 1)   # Đảm bảo kích thước (1, seq_length, 1)
             
-            # Kiểm tra kích thước của future_seq
-            st.write(f"Kích thước của future_seq: {future_seq.shape}")
+            
             
             try:
                 # Predict the next price
