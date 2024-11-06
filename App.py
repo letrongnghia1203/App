@@ -71,7 +71,7 @@ if symbol_price:
         prices_scaled = scaler.fit_transform(prices)
 
         # Create sequences for LSTM
-        seq_length = 5
+        seq_length = 60
         X = np.array([prices_scaled[i:i + seq_length] for i in range(len(prices_scaled) - seq_length)])
 
         # Dự đoán giá trong khoảng thời gian hiện có
