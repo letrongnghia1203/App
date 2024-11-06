@@ -52,19 +52,19 @@ if 'lstm_model' not in st.session_state:
     st.session_state.lstm_model = load_lstm_model()
 
 # Stock Price Prediction Section
-st.title("Stock Market Data Visualization with LSTM Predictions")
-symbol_price = st.text_input("Enter stock symbol for price prediction:")
+st.title("Stock Market Data Visualization with Extended LSTM Predictions")
+symbol_price = st.text_input("Enter stock symbol for extended price prediction:")
 
 if symbol_price:
     df_filtered = st.session_state.df_vietnam[st.session_state.df_vietnam['Symbol'] == symbol_price.upper()]
 
     if not df_filtered.empty:
-        st.write(f"Detailed information for stock symbol {symbol_price.upper()}:")
+        st.write(f"Historical data for stock symbol {symbol_price.upper()}:")
         st.write(df_filtered.head(1))
 
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df_filtered['Ngày'], y=df_filtered['Giá đóng cửa'], mode='lines+markers', name='Giá Đóng Cửa'))
-        
+        fig.add_trace(go.Scatter(x=df_filtered['Ngày'], y=df_filtered['Giá đóng cửa'], mode='lines+markers', name='Historical Prices'))
+
         # Prepare and scale data for prediction
         prices = df_filtered[['Giá đóng cửa']].values
         scaler = MinMaxScaler(feature_range=(0, 1))
@@ -74,22 +74,41 @@ if symbol_price:
         seq_length = 5
         X = np.array([prices_scaled[i:i + seq_length] for i in range(len(prices_scaled) - seq_length)])
 
+        # Dự đoán giá trong khoảng thời gian hiện có
         if len(X) > 0:
-            # Predict and invert scaling
             predictions = st.session_state.lstm_model.predict(X)
             predictions = scaler.inverse_transform(predictions)
             prediction_dates = df_filtered['Ngày'].iloc[seq_length:].values
+            fig.add_trace(go.Scatter(x=prediction_dates, y=predictions.flatten(), mode='lines', name='LSTM Predictions'))
 
-            fig.add_trace(go.Scatter(x=prediction_dates, y=predictions.flatten(), mode='lines', name='Dự đoán'))
+        # Dự đoán cho 1 năm tiếp theo
+        future_prices = prices_scaled[-seq_length:]  # Lấy đoạn chuỗi cuối cùng để bắt đầu dự đoán
+        future_predictions = []
 
-        fig.update_layout(title=f'Giá Đóng Cửa Cổ Phiếu {symbol_price.upper()} với Dự Đoán LSTM',
+        for _ in range(252):  # Giả sử có 252 ngày giao dịch trong một năm
+            future_seq = np.expand_dims(future_prices, axis=0)
+            next_price = st.session_state.lstm_model.predict(future_seq)
+            future_predictions.append(next_price[0, 0])  # Lưu giá trị dự đoán
+            future_prices = np.append(future_prices[1:], next_price[0, 0])  # Cập nhật chuỗi đầu vào cho lần dự đoán kế tiếp
+        
+        # Chuyển đổi lại giá trị dự đoán về thang đo gốc
+        future_predictions = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1))
+
+        # Tạo danh sách ngày cho 1 năm tiếp theo
+        last_date = df_filtered['Ngày'].max()
+        future_dates = pd.date_range(start=last_date, periods=252, freq='B')  # B for business day
+
+        # Thêm vào biểu đồ
+        fig.add_trace(go.Scatter(x=future_dates, y=future_predictions.flatten(), mode='lines', name='Next Year Predictions'))
+
+        fig.update_layout(title=f'Giá Đóng Cửa Cổ Phiếu {symbol_price.upper()} với Dự Đoán LSTM cho 1 Năm Tiếp Theo',
                           xaxis_title='Ngày', yaxis_title='Giá Đóng Cửa (VND)', template='plotly_white')
         
         st.plotly_chart(fig)
     else:
         st.write("No data available for this stock symbol.")
 else:
-    st.write("Please enter a stock symbol for price prediction.")
+    st.write("Please enter a stock symbol for extended price prediction.")
 
 # Sentiment Analysis Section
 st.title("Sentiment Analysis of Stock News")
@@ -175,7 +194,7 @@ if symbol_sentiment:
         df_pandas_news = df_pandas_news.sort_values(by='news_date')
         st.line_chart(df_pandas_news.set_index('news_date')['article_score'])
 
-                # Sentiment Distribution with Plotly
+        # Sentiment Distribution with Plotly
         st.write("### Sentiment Distribution")
         sentiment_counts = df_pandas_news['article_sentiment'].value_counts().reset_index()
         sentiment_counts.columns = ['Sentiment', 'Count']
@@ -216,4 +235,3 @@ if symbol_sentiment:
         st.pyplot(plt)
     else:
         st.write("No news data available for this stock symbol.")
-
