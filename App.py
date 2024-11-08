@@ -5,6 +5,7 @@ from deep_translator import GoogleTranslator
 import requests
 from bs4 import BeautifulSoup
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 import plotly.express as px
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
@@ -13,10 +14,11 @@ import gdown
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
-import matplotlib.pyplot as plt
 
+# Initialize sentiment analyzer
 analyzer = SentimentIntensityAnalyzer()
 
+# Load LSTM model and data only once
 @st.cache_resource
 def load_lstm_model():
     model_id = '1-2diAZCXfnoe38o21Vv5Sx8wmre1IceY'
@@ -43,72 +45,53 @@ def load_data():
     df_vietnam["Giá đóng cửa"] = pd.to_numeric(df_vietnam["Giá đóng cửa"].str.replace(',', '.'), errors='coerce')
     return df_vietnam.dropna(subset=["Giá đóng cửa"])
 
+# Cache data and model in session state
 if 'df_vietnam' not in st.session_state:
     st.session_state.df_vietnam = load_data()
 if 'lstm_model' not in st.session_state:
     st.session_state.lstm_model = load_lstm_model()
 
-st.title("Stock Market Data Visualization with Extended LSTM Predictions")
-symbol_price = st.text_input("Enter stock symbol for extended price prediction:")
+# Stock Price Prediction Section
+st.title("Stock Market Data Visualization with LSTM Predictions")
+symbol_price = st.text_input("Enter stock symbol for price prediction:")
 
 if symbol_price:
     df_filtered = st.session_state.df_vietnam[st.session_state.df_vietnam['Symbol'] == symbol_price.upper()]
 
     if not df_filtered.empty:
-        st.write(f"Historical data for stock symbol {symbol_price.upper()}:")
+        st.write(f"Detailed information for stock symbol {symbol_price.upper()}:")
         st.write(df_filtered.head(1))
 
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df_filtered['Ngày'], y=df_filtered['Giá đóng cửa'], mode='lines+markers', name='Historical Prices'))
-
+        fig.add_trace(go.Scatter(x=df_filtered['Ngày'], y=df_filtered['Giá đóng cửa'], mode='lines+markers', name='Giá Đóng Cửa'))
+        
+        # Prepare and scale data for prediction
         prices = df_filtered[['Giá đóng cửa']].values
         scaler = MinMaxScaler(feature_range=(0, 1))
         prices_scaled = scaler.fit_transform(prices)
 
+        # Create sequences for LSTM
         seq_length = 5
         X = np.array([prices_scaled[i:i + seq_length] for i in range(len(prices_scaled) - seq_length)])
 
         if len(X) > 0:
+            # Predict and invert scaling
             predictions = st.session_state.lstm_model.predict(X)
             predictions = scaler.inverse_transform(predictions)
             prediction_dates = df_filtered['Ngày'].iloc[seq_length:].values
-            fig.add_trace(go.Scatter(x=prediction_dates, y=predictions.flatten(), mode='lines', name='LSTM Predictions'))
 
-        future_prices = prices_scaled[-seq_length:]  
-        future_predictions = []
+            fig.add_trace(go.Scatter(x=prediction_dates, y=predictions.flatten(), mode='lines', name='Dự đoán'))
 
-        for _ in range(252):  
-            future_seq = np.expand_dims(future_prices, axis=0)  
-            future_seq = future_seq.reshape(1, seq_length, 1)   
-            
-            
-            
-            try:
-                next_price = st.session_state.lstm_model.predict(future_seq)
-            except ValueError as e:
-                st.write(f"Lỗi khi dự đoán với future_seq: {e}")
-                break  
-
-            future_predictions.append(next_price[0, 0])  
-            
-            future_prices = np.append(future_prices[1:], next_price[0, 0])
-
-        future_predictions = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1))
-
-        last_date = df_filtered['Ngày'].max()
-        future_dates = pd.date_range(start=last_date, periods=252, freq='B')  # Chỉ tính các ngày làm việc
-
-        fig.add_trace(go.Scatter(x=future_dates, y=future_predictions.flatten(), mode='lines', name='Next Year Predictions'))
-
-        fig.update_layout(title=f'Giá Đóng Cửa Cổ Phiếu {symbol_price.upper()} với Dự Đoán LSTM cho 1 Năm Tiếp Theo',
+        fig.update_layout(title=f'Giá Đóng Cửa Cổ Phiếu {symbol_price.upper()} với Dự Đoán LSTM',
                           xaxis_title='Ngày', yaxis_title='Giá Đóng Cửa (VND)', template='plotly_white')
         
         st.plotly_chart(fig)
     else:
         st.write("No data available for this stock symbol.")
 else:
-    st.write("Please enter a stock symbol for extended price prediction.")
+    st.write("Please enter a stock symbol for price prediction.")
 
+# Sentiment Analysis Section
 st.title("Sentiment Analysis of Stock News")
 
 symbol_sentiment = st.text_input("Enter stock symbol for sentiment analysis:")
@@ -192,7 +175,7 @@ if symbol_sentiment:
         df_pandas_news = df_pandas_news.sort_values(by='news_date')
         st.line_chart(df_pandas_news.set_index('news_date')['article_score'])
 
-        # Sentiment Distribution with Plotly
+                # Sentiment Distribution with Plotly
         st.write("### Sentiment Distribution")
         sentiment_counts = df_pandas_news['article_sentiment'].value_counts().reset_index()
         sentiment_counts.columns = ['Sentiment', 'Count']
@@ -208,6 +191,7 @@ if symbol_sentiment:
         )
         st.plotly_chart(fig_plotly)
 
+        # Word Cloud for Most Common Topics in Positive Sentiment Articles
         df_pandas_news['cleaned_title_en'] = df_pandas_news['title_en'].str.replace(r'\W', ' ', regex=True)
         df_pandas_news['cleaned_introduction_en'] = df_pandas_news['introduction_en'].str.replace(r'\W', ' ', regex=True)
         
@@ -232,3 +216,4 @@ if symbol_sentiment:
         st.pyplot(plt)
     else:
         st.write("No news data available for this stock symbol.")
+
