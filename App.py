@@ -15,10 +15,8 @@ from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 
-# Initialize sentiment analyzer
 analyzer = SentimentIntensityAnalyzer()
 
-# Load LSTM model and data only once
 @st.cache_resource
 def load_lstm_model():
     model_id = '1-2diAZCXfnoe38o21Vv5Sx8wmre1IceY'
@@ -45,13 +43,11 @@ def load_data():
     df_vietnam["Giá đóng cửa"] = pd.to_numeric(df_vietnam["Giá đóng cửa"].str.replace(',', '.'), errors='coerce')
     return df_vietnam.dropna(subset=["Giá đóng cửa"])
 
-# Cache data and model in session state
 if 'df_vietnam' not in st.session_state:
     st.session_state.df_vietnam = load_data()
 if 'lstm_model' not in st.session_state:
     st.session_state.lstm_model = load_lstm_model()
 
-# Stock Price Prediction Section
 st.title("Stock Market Data Visualization with LSTM Predictions")
 symbol_price = st.text_input("Enter stock symbol for price prediction:")
 
@@ -65,17 +61,14 @@ if symbol_price:
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=df_filtered['Ngày'], y=df_filtered['Giá đóng cửa'], mode='lines+markers', name='Giá Đóng Cửa'))
         
-        # Prepare and scale data for prediction
         prices = df_filtered[['Giá đóng cửa']].values
         scaler = MinMaxScaler(feature_range=(0, 1))
         prices_scaled = scaler.fit_transform(prices)
 
-        # Create sequences for LSTM
         seq_length = 5
         X = np.array([prices_scaled[i:i + seq_length] for i in range(len(prices_scaled) - seq_length)])
 
         if len(X) > 0:
-            # Predict and invert scaling
             predictions = st.session_state.lstm_model.predict(X)
             predictions = scaler.inverse_transform(predictions)
             prediction_dates = df_filtered['Ngày'].iloc[seq_length:].values
@@ -91,7 +84,6 @@ if symbol_price:
 else:
     st.write("Please enter a stock symbol for price prediction.")
 
-# Sentiment Analysis Section
 st.title("Sentiment Analysis of Stock News")
 
 symbol_sentiment = st.text_input("Enter stock symbol for sentiment analysis:")
@@ -175,7 +167,6 @@ if symbol_sentiment:
         df_pandas_news = df_pandas_news.sort_values(by='news_date')
         st.line_chart(df_pandas_news.set_index('news_date')['article_score'])
 
-                # Sentiment Distribution with Plotly
         st.write("### Sentiment Distribution")
         sentiment_counts = df_pandas_news['article_sentiment'].value_counts().reset_index()
         sentiment_counts.columns = ['Sentiment', 'Count']
@@ -191,7 +182,6 @@ if symbol_sentiment:
         )
         st.plotly_chart(fig_plotly)
 
-        # Word Cloud for Most Common Topics in Positive Sentiment Articles
         df_pandas_news['cleaned_title_en'] = df_pandas_news['title_en'].str.replace(r'\W', ' ', regex=True)
         df_pandas_news['cleaned_introduction_en'] = df_pandas_news['introduction_en'].str.replace(r'\W', ' ', regex=True)
         
